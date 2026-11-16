@@ -11,7 +11,12 @@ Description: Fits negative binomial regression by iteratively reweighted
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 8.1.1
 Suggests: 
+    AER,
+    MASS,
+    pscl,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.1
+Imports: 
+    stats
