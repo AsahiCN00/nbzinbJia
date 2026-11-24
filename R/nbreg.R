@@ -13,7 +13,7 @@
 #'   value.
 #'
 #' @return A list of control parameters.
-#' @examplesIf requireNamespace("pscl", quietly = TRUE)
+#' @examples
 #' nbreg_control(epsilon = 1e-10, trace = TRUE)
 #' @export
 nbreg_control <- function(epsilon = 1e-8, maxit = 100, trace = FALSE,
@@ -123,6 +123,8 @@ nb_fit <- function(X, y, offset = rep(0, NROW(y)), weights = rep(1, NROW(y)),
   } else {
     theta_start
   }
+  # The moment estimate can be extreme (e.g. Inf when y/mu - 1 is ~0 for
+  # every row, i.e. no overdispersion), so keep it inside [1e-4, theta_max].
   theta <- min(max(theta, 1e-4), control$theta_max)
 
   ll <- nb_loglik(y, mu, theta, a)
@@ -144,6 +146,7 @@ nb_fit <- function(X, y, offset = rep(0, NROW(y)), weights = rep(1, NROW(y)),
       cat(sprintf("nbreg iter %3d: logLik = %.10f, theta = %.6f\n",
                   iter, ll, theta))
     }
+    # (c) Outer convergence: stop when |l(beta, theta) - l_old| < epsilon.
     if (abs(ll - ll_old) < eps) {
       converged <- TRUE
       break
@@ -213,6 +216,8 @@ nb_irls_beta <- function(X, y, offset, a, theta, beta, control) {
       ll_new <- nb_loglik(y, mu_new, theta, a)
       k <- k + 1L
     }
+    # Inner convergence uses a tolerance 100x tighter than the outer loop, so
+    # beta is fully converged for this theta before theta is updated.
     done <- abs(ll_new - ll) < control$epsilon * 1e-2
     beta <- beta_new
     eta <- eta_new
@@ -239,6 +244,8 @@ nb_theta_nr <- function(y, mu, a, theta, control) {
     U_phi <- theta * U
     H_phi <- theta^2 * H + theta * U
     step <- if (H_phi < 0) -U_phi / H_phi else sign(U_phi)
+    # Cap the step at |5| on the log scale (theta changes by at most a factor
+    # e^5 ~ 148 per step), so one bad Newton step cannot overshoot wildly.
     step <- max(min(step, 5), -5)
     phi_new <- min(phi + step, phi_max)
     ll_new <- nb_loglik(y, mu, exp(phi_new), a)
@@ -260,6 +267,8 @@ nb_theta_nr <- function(y, mu, a, theta, control) {
 # Poisson IRLS used only for starting values:
 #   w_i = a_i mu_i,  z_i = (eta_i - o_i) + (y_i - mu_i) / mu_i
 pois_irls <- function(X, y, offset, a, control) {
+  # Start from mu = y + 0.1 (as glm() does for Poisson): adding 0.1 avoids
+  # log(0) and division by zero in z_i when y_i = 0.
   mu <- y + 0.1
   eta <- log(mu)
   ll <- -Inf
