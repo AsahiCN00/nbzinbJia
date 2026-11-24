@@ -36,7 +36,5 @@ A list of control parameters.
 Control parameters for nbreg()
 }
 \examples{
-\dontshow{if (requireNamespace("pscl", quietly = TRUE)) withAutoprint(\{ # examplesIf}
 nbreg_control(epsilon = 1e-10, trace = TRUE)
-\dontshow{\}) # examplesIf}
 }
