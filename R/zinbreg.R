@@ -224,6 +224,16 @@ zinb_fit <- function(X, Z, y, offx, offz, a, control) {
   se_logtheta <- sqrt(V[kx + kz + 1, kx + kz + 1])
 
   pi_hat <- stats::plogis(eta_z)
+  # Boundary case: if every pi_i is essentially 0, the MLE is at
+  # gamma -> -Inf (no zero inflation). The log-likelihood is then flat in
+  # gamma, so gamma and its SE are not identified.
+  if (max(pi_hat) < 1e-6) {
+    warning("zinbreg: the estimated zero-inflation probabilities are ",
+            "essentially zero (max pi = ", signif(max(pi_hat), 3), "); the ",
+            "zero-model coefficients are not identified and their standard ",
+            "errors are unreliable. The NB model (nbreg) may suffice.",
+            call. = FALSE)
+  }
   list(coefficients = list(count = beta, zero = gamma),
        vcov = V,
        theta = theta,

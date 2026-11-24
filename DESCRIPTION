@@ -14,6 +14,7 @@ Roxygen: list(markdown = TRUE)
 Suggests:
     AER,
     MASS,
+    numDeriv,
     pscl,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
