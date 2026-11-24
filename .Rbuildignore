@@ -3,3 +3,6 @@
 ^CLAUDE\.md$
 ^report$
 ^\.github$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$

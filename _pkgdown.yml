@@ -1,0 +1,27 @@
+url: https://asahicn00.github.io/nbzinbJia/
+destination: docs
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles]
+    right: [search, github]
+
+reference:
+  - title: Negative binomial regression
+    desc: IRLS for the coefficients alternated with Newton-Raphson for log(theta).
+    contents:
+      - nbreg
+      - nbreg_control
+      - nbreg-methods
+  - title: Zero-inflated negative binomial regression
+    desc: EM algorithm whose M-steps are IRLS fits; analytic standard errors.
+    contents:
+      - zinbreg
+      - zinbreg_control
+      - zinbreg-methods
+  - title: Package
+    contents:
+      - nbzinbJia-package

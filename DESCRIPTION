@@ -22,3 +22,6 @@ Config/roxygen2/version: 8.1.1
 Imports:
     Formula,
     stats
+URL: https://asahicn00.github.io/nbzinbJia/,
+    https://github.com/AsahiCN00/nbzinbJia
+BugReports: https://github.com/AsahiCN00/nbzinbJia/issues
