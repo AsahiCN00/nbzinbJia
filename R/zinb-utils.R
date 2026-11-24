@@ -79,6 +79,74 @@ logit_irls <- function(Z, tau, offset, a, gamma, control) {
   gamma
 }
 
+# Derivatives of g_i = log f_NB(y_i; mu_i, theta) with respect to the count
+# linear predictor eta_c (mu = exp(eta_c)) and phi = log(theta):
+#   g_c   = theta (y - mu) / (theta + mu)
+#   g_cc  = -theta mu (theta + y) / (theta + mu)^2
+#   g_phi = theta U_i(theta)
+#   g_pp  = theta^2 H_i(theta) + theta U_i(theta)
+#   g_cp  = theta mu (y - mu) / (theta + mu)^2
+# where U_i and H_i are the per-observation terms of Section 3.1(b).
+nb_log_density_derivs <- function(y, mu, theta) {
+  tm <- theta + mu
+  U <- digamma(y + theta) - digamma(theta) + log(theta) + 1 - log(tm) -
+    (y + theta) / tm
+  H <- trigamma(y + theta) - trigamma(theta) + 1 / theta - 2 / tm +
+    (y + theta) / tm^2
+  list(c = theta * (y - mu) / tm,
+       cc = -theta * mu * (theta + y) / tm^2,
+       p = theta * U,
+       pp = theta^2 * H + theta * U,
+       cp = theta * mu * (y - mu) / tm^2)
+}
+
+# Score and analytic Hessian of the observed-data ZINB log-likelihood with
+# respect to (beta, gamma, phi = log theta).
+#
+# Write l_i = log[ pi_i 1(y_i = 0) + (1 - pi_i) f(y_i) ] and g_i = log f(y_i).
+# Differentiating, with tau_i the E-step posterior (tau_i = 0 when y_i > 0),
+# gives one formula for every observation:
+#   dl/d eta_c = (1 - tau) g_c          dl/d eta_z = tau - pi
+#   dl/d phi   = (1 - tau) g_phi
+#   d2l/(d eta_c)^2   = (1 - tau) g_cc + tau (1 - tau) g_c^2
+#   d2l/d eta_c d phi = (1 - tau) g_cp + tau (1 - tau) g_c g_phi
+#   d2l/d phi^2       = (1 - tau) g_pp + tau (1 - tau) g_phi^2
+#   d2l/(d eta_z)^2   = tau (1 - tau) - pi (1 - pi)
+#   d2l/d eta_c d eta_z = -tau (1 - tau) g_c
+#   d2l/d eta_z d phi   = -tau (1 - tau) g_phi
+# and the chain rule (d eta_c / d beta = x_i, d eta_z / d gamma = z_i)
+# assembles the gradient and Hessian below.
+zinb_score_hessian <- function(X, Z, y, a, beta, gamma, theta, offx, offz) {
+  mu <- exp(drop(X %*% beta) + offx)
+  eta_z <- drop(Z %*% gamma) + offz
+  p <- stats::plogis(eta_z)
+  tau <- zinb_estep(y, mu, theta, eta_z)
+  d <- nb_log_density_derivs(y, mu, theta)
+  tt <- tau * (1 - tau)
+
+  s_c <- a * (1 - tau) * d$c
+  s_z <- a * (tau - p)
+  s_p <- a * (1 - tau) * d$p
+  h_cc <- a * ((1 - tau) * d$cc + tt * d$c^2)
+  h_cp <- a * ((1 - tau) * d$cp + tt * d$c * d$p)
+  h_pp <- a * ((1 - tau) * d$pp + tt * d$p^2)
+  h_zz <- a * (tt - p * (1 - p))
+  h_cz <- a * (-tt * d$c)
+  h_zp <- a * (-tt * d$p)
+
+  grad <- c(colSums(X * s_c), colSums(Z * s_z), sum(s_p))
+  Hbb <- crossprod(X, X * h_cc)
+  Hgg <- crossprod(Z, Z * h_zz)
+  Hbg <- crossprod(X, Z * h_cz)
+  Hbp <- colSums(X * h_cp)
+  Hgp <- colSums(Z * h_zp)
+  Hpp <- sum(h_pp)
+  H <- rbind(cbind(Hbb, Hbg, Hbp),
+             cbind(t(Hbg), Hgg, Hgp),
+             c(Hbp, Hgp, Hpp))
+  list(gradient = unname(grad), hessian = unname(H))
+}
+
 # Offset of one model part, taken from a model frame: the offset() terms
 # of that part's formula, plus the 'offset' argument when include_arg is
 # TRUE (zeroinfl() applies the argument to the count part only).

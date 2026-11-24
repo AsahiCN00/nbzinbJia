@@ -44,8 +44,9 @@ zinbreg_control <- function(epsilon = 1e-8, maxit = 5000, inner_maxit = 100,
 #' posterior probability that each zero is structural; the M-step fits a
 #' logistic regression with that fractional response (by IRLS) and a
 #' weighted NB regression (IRLS for beta, Newton-Raphson for theta). No
-#' general-purpose optimizer is used. The results reproduce
-#' `pscl::zeroinfl(..., dist = "negbin")`.
+#' general-purpose optimizer is used. Standard errors come from the analytic
+#' observed information matrix of `(beta, gamma, log(theta))`. The results
+#' reproduce `pscl::zeroinfl(..., dist = "negbin")`.
 #'
 #' @param formula A two-part formula `y ~ x1 + x2 | z1 + z2`: count-model
 #'   covariates before `|`, zero-model covariates after it. Without `|`, the
@@ -59,7 +60,9 @@ zinbreg_control <- function(epsilon = 1e-8, maxit = 5000, inner_maxit = 100,
 #' @param na.action How to handle missing values.
 #'
 #' @return An object of class `"zinbreg"`: a list containing `coefficients`
-#'   (a list with elements `count` and `zero`), `theta`, `loglik`,
+#'   (a list with elements `count` and `zero`), `vcov` (covariance matrix of
+#'   all coefficients and `log(theta)`), `theta`, `SE.theta`, `SE.logtheta`,
+#'   `loglik`,
 #'   `loglik_path` (the observed-data log-likelihood after each EM
 #'   iteration), `iter`, `converged`, `fitted.values` (`(1 - pi) mu`), `mu`,
 #'   `pi`, `call`, and the model frame and terms.
@@ -69,7 +72,8 @@ zinbreg_control <- function(epsilon = 1e-8, maxit = 5000, inner_maxit = 100,
 #' fit <- zinbreg(art ~ fem + mar + kid5 + phd + ment | ment,
 #'                data = bioChemists, control = zinbreg_control(trace = TRUE))
 #' fit$coefficients
-#' c(theta = fit$theta, logLik = fit$loglik, iterations = fit$iter)
+#' sqrt(diag(fit$vcov))   # SEs of (beta, gamma, log(theta))
+#' c(theta = fit$theta, SE = fit$SE.theta, logLik = fit$loglik)
 #' # EM never decreases the observed-data log-likelihood
 #' all(diff(fit$loglik_path) >= -1e-8)
 #' @export
@@ -206,13 +210,31 @@ zinb_fit <- function(X, Z, y, offx, offz, a, control) {
             "limit)", call. = FALSE)
   }
 
+  # Standard errors: invert the observed information -H of the
+  # observed-data log-likelihood at the MLE, in (beta, gamma, log theta).
+  sh <- zinb_score_hessian(X, Z, y, a, beta, gamma, theta, offx, offz)
+  V <- tryCatch(solve(-sh$hessian), error = function(e) {
+    warning("zinbreg: observed information is singular; standard errors ",
+            "are not available", call. = FALSE)
+    matrix(NA_real_, kx + kz + 1, kx + kz + 1)
+  })
+  nm <- c(paste0("count_", colnames(X)), paste0("zero_", colnames(Z)),
+          "Log(theta)")
+  dimnames(V) <- list(nm, nm)
+  se_logtheta <- sqrt(V[kx + kz + 1, kx + kz + 1])
+
   pi_hat <- stats::plogis(eta_z)
   list(coefficients = list(count = beta, zero = gamma),
+       vcov = V,
        theta = theta,
+       SE.logtheta = se_logtheta,
+       # delta method: SE(theta) = theta * SE(log theta)
+       SE.theta = theta * se_logtheta,
        loglik = ll,
        loglik_path = ll_path,
        iter = iter,
        converged = converged,
+       gradient = stats::setNames(sh$gradient, nm),
        fitted.values = (1 - pi_hat) * mu,
        mu = mu,
        pi = pi_hat,

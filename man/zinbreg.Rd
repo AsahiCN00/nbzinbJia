@@ -34,7 +34,9 @@ Offsets can also be given with \code{offset()} in either part of the formula.}
 }
 \value{
 An object of class \code{"zinbreg"}: a list containing \code{coefficients}
-(a list with elements \code{count} and \code{zero}), \code{theta}, \code{loglik},
+(a list with elements \code{count} and \code{zero}), \code{vcov} (covariance matrix of
+all coefficients and \code{log(theta)}), \code{theta}, \code{SE.theta}, \code{SE.logtheta},
+\code{loglik},
 \code{loglik_path} (the observed-data log-likelihood after each EM
 iteration), \code{iter}, \code{converged}, \code{fitted.values} (\verb{(1 - pi) mu}), \code{mu},
 \code{pi}, \code{call}, and the model frame and terms.
@@ -47,8 +49,9 @@ log-likelihood is maximized by the EM algorithm. The E-step computes the
 posterior probability that each zero is structural; the M-step fits a
 logistic regression with that fractional response (by IRLS) and a
 weighted NB regression (IRLS for beta, Newton-Raphson for theta). No
-general-purpose optimizer is used. The results reproduce
-\code{pscl::zeroinfl(..., dist = "negbin")}.
+general-purpose optimizer is used. Standard errors come from the analytic
+observed information matrix of \verb{(beta, gamma, log(theta))}. The results
+reproduce \code{pscl::zeroinfl(..., dist = "negbin")}.
 }
 \examples{
 \dontshow{if (requireNamespace("pscl", quietly = TRUE)) withAutoprint(\{ # examplesIf}
@@ -56,7 +59,8 @@ data("bioChemists", package = "pscl")
 fit <- zinbreg(art ~ fem + mar + kid5 + phd + ment | ment,
                data = bioChemists, control = zinbreg_control(trace = TRUE))
 fit$coefficients
-c(theta = fit$theta, logLik = fit$loglik, iterations = fit$iter)
+sqrt(diag(fit$vcov))   # SEs of (beta, gamma, log(theta))
+c(theta = fit$theta, SE = fit$SE.theta, logLik = fit$loglik)
 # EM never decreases the observed-data log-likelihood
 all(diff(fit$loglik_path) >= -1e-8)
 \dontshow{\}) # examplesIf}
