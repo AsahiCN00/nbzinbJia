@@ -20,10 +20,28 @@ wls_solve <- function(X, w, z) {
 # NB2 log-likelihood (Section 2.1), with prior weights a_i:
 # l = sum_i a_i [ lgamma(y+theta) - lgamma(theta) - log y! + theta log theta
 #                 + y log mu - (theta + y) log(theta + mu) ]
-# dnbinom(size = theta, mu = mu) uses exactly this parameterization.
+# dnbinom(size = theta, mu = mu) uses exactly this parameterization, and
+# it evaluates lgamma(y + theta) - lgamma(theta) accurately even for huge
+# theta (a direct lgamma difference loses precision there).
 nb_loglik <- function(y, mu, theta, a) {
   sum(a * stats::dnbinom(y, size = theta, mu = mu, log = TRUE))
 }
+
+# The part of the NB log-likelihood that depends on mu:
+#   theta log theta + y log mu - (theta + y) log(theta + mu) + const
+#     = -theta log1p(mu / theta) + y log(mu / (theta + mu)) + const.
+# With theta fixed, the lgamma terms are constants, so this kernel is all
+# the beta-IRLS step needs to check that the log-likelihood increases. It
+# is much cheaper than dnbinom(), which matters because it is evaluated at
+# every IRLS step. (The y log(...) term is set to 0 when y = 0, avoiding
+# 0 * -Inf.)
+nb_kernel_i <- function(y, mu, theta) {
+  ylog <- y * log(mu / (theta + mu))
+  ylog[y == 0] <- 0
+  -theta * log1p(mu / theta) + ylog
+}
+
+nb_kernel <- function(y, mu, theta, a) sum(a * nb_kernel_i(y, mu, theta))
 
 # Poisson log-likelihood (used only for the Poisson starting values).
 pois_loglik <- function(y, mu, a) {

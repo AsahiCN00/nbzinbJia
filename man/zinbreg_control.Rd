@@ -5,7 +5,7 @@
 \title{Control parameters for zinbreg()}
 \usage{
 zinbreg_control(
-  epsilon = 1e-08,
+  epsilon = 1e-10,
   maxit = 5000,
   inner_maxit = 100,
   trace = FALSE,
@@ -15,7 +15,10 @@ zinbreg_control(
 }
 \arguments{
 \item{epsilon}{Convergence tolerance for the EM algorithm: iterations stop
-when the observed-data log-likelihood changes by less than \code{epsilon}.}
+when the observed-data log-likelihood changes by less than \code{epsilon}.
+EM converges linearly (slowly), so a small change in the log-likelihood
+can still leave the parameters noticeably away from the MLE; the default
+\code{1e-10} gives coefficients accurate to about \code{1e-5}.}
 
 \item{maxit}{Maximum number of EM iterations.}
 

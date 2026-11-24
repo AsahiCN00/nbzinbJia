@@ -2,6 +2,9 @@
 #'
 #' @param epsilon Convergence tolerance for the EM algorithm: iterations stop
 #'   when the observed-data log-likelihood changes by less than `epsilon`.
+#'   EM converges linearly (slowly), so a small change in the log-likelihood
+#'   can still leave the parameters noticeably away from the MLE; the default
+#'   `1e-10` gives coefficients accurate to about `1e-5`.
 #' @param maxit Maximum number of EM iterations.
 #' @param inner_maxit Maximum number of iterations of each IRLS /
 #'   Newton-Raphson loop inside the M-steps.
@@ -15,7 +18,7 @@
 #' @examples
 #' zinbreg_control(epsilon = 1e-10, trace = TRUE)
 #' @export
-zinbreg_control <- function(epsilon = 1e-8, maxit = 5000, inner_maxit = 100,
+zinbreg_control <- function(epsilon = 1e-10, maxit = 5000, inner_maxit = 100,
                             trace = FALSE, theta_max = 1e8, theta_warn = 1e5) {
   if (!is.numeric(epsilon) || length(epsilon) != 1 || epsilon <= 0) {
     stop("'epsilon' must be a single positive number", call. = FALSE)

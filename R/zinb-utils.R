@@ -28,11 +28,13 @@ zinb_loglik <- function(y, mu, theta, eta_z, a) {
 # E-step (Section 3.2): posterior probability of a structural zero
 #   tau_i = pi_i / [ pi_i + (1 - pi_i) f_NB(0; mu_i, theta) ]  if y_i = 0
 #   tau_i = 0                                                 if y_i > 0
-# computed on the log scale as exp(log pi_i - log[denominator]).
+# computed on the log scale as exp(log pi_i - log[denominator]), with
+#   log f_NB(0; mu, theta) = theta log(theta / (theta + mu))
+#                          = -theta log1p(mu / theta).
 zinb_estep <- function(y, mu, theta, eta_z) {
   log_pi <- stats::plogis(eta_z, log.p = TRUE)
   log_1mpi <- stats::plogis(-eta_z, log.p = TRUE)
-  log_f0 <- stats::dnbinom(0, size = theta, mu = mu, log = TRUE)
+  log_f0 <- -theta * log1p(mu / theta)
   tau <- exp(log_pi - log_add_exp(log_pi, log_1mpi + log_f0))
   tau[y > 0] <- 0
   tau
@@ -70,7 +72,10 @@ logit_irls <- function(Z, tau, offset, a, gamma, control) {
       ll_new <- obj(eta_new)
       k <- k + 1L
     }
-    done <- abs(ll_new - ll) < control$epsilon * 1e-2
+    # converged when the objective or gamma stops changing (see
+    # nb_irls_beta() for why both criteria are used)
+    done <- abs(ll_new - ll) < control$epsilon * 1e-2 ||
+      max(abs(gamma_new - gamma)) < 1e-10
     gamma <- gamma_new
     eta <- eta_new
     ll <- ll_new
