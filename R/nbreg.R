@@ -197,35 +197,41 @@ nb_fit <- function(X, y, offset = rep(0, NROW(y)), weights = rep(1, NROW(y)),
 #   z_i = (eta_i - o_i) + (y_i - mu_i) / mu_i
 #   beta <- (X'WX)^{-1} X'W z
 # Step halving guards against a (rare) decrease of the log-likelihood.
+# theta is fixed here, so only the mu-dependent kernel of the log-likelihood
+# (nb_kernel) is needed to compare candidate steps.
 nb_irls_beta <- function(X, y, offset, a, theta, beta, control) {
   eta <- drop(X %*% beta) + offset
   mu <- exp(eta)
-  ll <- nb_loglik(y, mu, theta, a)
+  ll <- nb_kernel(y, mu, theta, a)
   for (it in seq_len(control$maxit)) {
     w <- a * theta * mu / (theta + mu)
     z <- (eta - offset) + (y - mu) / mu
     beta_new <- wls_solve(X, w, z)
     eta_new <- drop(X %*% beta_new) + offset
     mu_new <- exp(eta_new)
-    ll_new <- nb_loglik(y, mu_new, theta, a)
+    ll_new <- nb_kernel(y, mu_new, theta, a)
     k <- 0L
     while ((!is.finite(ll_new) || ll_new < ll - 1e-12) && k < 30L) {
       beta_new <- (beta + beta_new) / 2
       eta_new <- drop(X %*% beta_new) + offset
       mu_new <- exp(eta_new)
-      ll_new <- nb_loglik(y, mu_new, theta, a)
+      ll_new <- nb_kernel(y, mu_new, theta, a)
       k <- k + 1L
     }
     # Inner convergence uses a tolerance 100x tighter than the outer loop, so
-    # beta is fully converged for this theta before theta is updated.
-    done <- abs(ll_new - ll) < control$epsilon * 1e-2
+    # beta is fully converged for this theta before theta is updated. We
+    # also stop once beta stops moving: for a large |loglik| a very small
+    # absolute tolerance can be below floating-point resolution and would
+    # otherwise never be met.
+    done <- abs(ll_new - ll) < control$epsilon * 1e-2 ||
+      max(abs(beta_new - beta)) < 1e-10
     beta <- beta_new
     eta <- eta_new
     mu <- mu_new
     ll <- ll_new
     if (done) break
   }
-  list(beta = beta, mu = mu, loglik = ll)
+  list(beta = beta, mu = mu)
 }
 
 # Newton-Raphson for phi = log(theta) with mu fixed (Section 3.1b).
