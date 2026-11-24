@@ -2,7 +2,7 @@ Package: nbzinbJia
 Title: Negative Binomial and Zero-Inflated Negative Binomial Regression
     via IRLS and EM
 Version: 0.0.0.9000
-Authors@R: 
+Authors@R:
     person("Fangxu", "Jia", , "jiafangxu@outlook.com", role = c("aut", "cre"))
 Description: Fits negative binomial regression by iteratively reweighted
     least squares alternated with Newton-Raphson updates for the
@@ -11,7 +11,10 @@ Description: Fits negative binomial regression by iteratively reweighted
 License: MIT + file LICENSE
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 8.1.1
-Suggests: 
+Suggests:
+    pscl,
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.1
+Imports:
+    stats
