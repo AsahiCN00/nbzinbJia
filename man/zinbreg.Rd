@@ -36,10 +36,8 @@ Offsets can also be given with \code{offset()} in either part of the formula.}
 An object of class \code{"zinbreg"}: a list containing \code{coefficients}
 (a list with elements \code{count} and \code{zero}), \code{vcov} (covariance matrix of
 all coefficients and \code{log(theta)}), \code{theta}, \code{SE.theta}, \code{SE.logtheta},
-\code{loglik},
-\code{loglik_path} (the observed-data log-likelihood after each EM
-iteration), \code{iter}, \code{converged}, \code{fitted.values} (\verb{(1 - pi) mu}), \code{mu},
-\code{pi}, \code{call}, and the model frame and terms.
+\code{loglik}, \code{iter}, \code{converged}, \code{fitted.values} (\verb{(1 - pi) mu}), \code{mu},
+\code{pi}, \code{call}, and the model information needed by \code{\link[=predict.zinbreg]{predict.zinbreg()}}.
 }
 \description{
 Fits the ZINB model: with probability \code{pi} an observation is a structural
@@ -57,14 +55,11 @@ reproduce \code{pscl::zeroinfl(..., dist = "negbin")}.
 \dontshow{if (requireNamespace("pscl", quietly = TRUE)) withAutoprint(\{ # examplesIf}
 data("bioChemists", package = "pscl")
 fit <- zinbreg(art ~ fem + mar + kid5 + phd + ment | ment,
-               data = bioChemists, control = zinbreg_control(trace = TRUE))
-fit$coefficients
-sqrt(diag(fit$vcov))   # SEs of (beta, gamma, log(theta))
-c(theta = fit$theta, SE = fit$SE.theta, logLik = fit$loglik)
-# EM never decreases the observed-data log-likelihood
-all(diff(fit$loglik_path) >= -1e-8)
+               data = bioChemists)
+summary(fit)
+head(predict(fit, type = "zero"))
 \dontshow{\}) # examplesIf}
 }
 \seealso{
-\code{\link[=nbreg]{nbreg()}}
+\link{zinbreg-methods}, \code{\link[=nbreg]{nbreg()}}
 }

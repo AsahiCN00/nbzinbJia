@@ -57,13 +57,13 @@ nbreg_control <- function(epsilon = 1e-8, maxit = 100, trace = FALSE,
 #'   `coefficients`, `vcov` (variance-covariance matrix of the coefficients,
 #'   treating theta as known), `theta`, `SE.theta`, `loglik`, `iter`,
 #'   `converged`, `fitted.values`, `linear.predictors`, `call`, and the
-#'   model frame and terms.
+#'   model information needed by [predict.nbreg()].
+#' @seealso [nbreg-methods] for summary(), predict() and other methods.
 #' @examplesIf requireNamespace("pscl", quietly = TRUE)
 #' data("bioChemists", package = "pscl")
 #' fit <- nbreg(art ~ fem + mar + kid5 + phd + ment, data = bioChemists)
-#' fit$coefficients
-#' sqrt(diag(fit$vcov))
-#' c(theta = fit$theta, SE = fit$SE.theta, logLik = fit$loglik)
+#' summary(fit)
+#' AIC(fit)
 #' @export
 nbreg <- function(formula, data, offset, control = nbreg_control(),
                   weights, subset, na.action) {

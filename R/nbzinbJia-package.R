@@ -7,3 +7,6 @@
 #'
 #' @keywords internal
 "_PACKAGE"
+
+#' @importFrom stats coef vcov logLik nobs fitted residuals predict
+NULL

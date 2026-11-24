@@ -37,7 +37,7 @@ An object of class \code{"nbreg"}: a list containing
 \code{coefficients}, \code{vcov} (variance-covariance matrix of the coefficients,
 treating theta as known), \code{theta}, \code{SE.theta}, \code{loglik}, \code{iter},
 \code{converged}, \code{fitted.values}, \code{linear.predictors}, \code{call}, and the
-model frame and terms.
+model information needed by \code{\link[=predict.nbreg]{predict.nbreg()}}.
 }
 \description{
 Fits the NB2 regression model \verb{log(mu) = X beta + offset},
@@ -52,8 +52,10 @@ general-purpose optimizer is used. The results reproduce
 \dontshow{if (requireNamespace("pscl", quietly = TRUE)) withAutoprint(\{ # examplesIf}
 data("bioChemists", package = "pscl")
 fit <- nbreg(art ~ fem + mar + kid5 + phd + ment, data = bioChemists)
-fit$coefficients
-sqrt(diag(fit$vcov))
-c(theta = fit$theta, SE = fit$SE.theta, logLik = fit$loglik)
+summary(fit)
+AIC(fit)
 \dontshow{\}) # examplesIf}
+}
+\seealso{
+\link{nbreg-methods} for summary(), predict() and other methods.
 }

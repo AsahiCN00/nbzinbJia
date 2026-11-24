@@ -65,20 +65,15 @@ zinbreg_control <- function(epsilon = 1e-10, maxit = 5000, inner_maxit = 100,
 #' @return An object of class `"zinbreg"`: a list containing `coefficients`
 #'   (a list with elements `count` and `zero`), `vcov` (covariance matrix of
 #'   all coefficients and `log(theta)`), `theta`, `SE.theta`, `SE.logtheta`,
-#'   `loglik`,
-#'   `loglik_path` (the observed-data log-likelihood after each EM
-#'   iteration), `iter`, `converged`, `fitted.values` (`(1 - pi) mu`), `mu`,
-#'   `pi`, `call`, and the model frame and terms.
-#' @seealso [nbreg()]
+#'   `loglik`, `iter`, `converged`, `fitted.values` (`(1 - pi) mu`), `mu`,
+#'   `pi`, `call`, and the model information needed by [predict.zinbreg()].
+#' @seealso [zinbreg-methods], [nbreg()]
 #' @examplesIf requireNamespace("pscl", quietly = TRUE)
 #' data("bioChemists", package = "pscl")
 #' fit <- zinbreg(art ~ fem + mar + kid5 + phd + ment | ment,
-#'                data = bioChemists, control = zinbreg_control(trace = TRUE))
-#' fit$coefficients
-#' sqrt(diag(fit$vcov))   # SEs of (beta, gamma, log(theta))
-#' c(theta = fit$theta, SE = fit$SE.theta, logLik = fit$loglik)
-#' # EM never decreases the observed-data log-likelihood
-#' all(diff(fit$loglik_path) >= -1e-8)
+#'                data = bioChemists)
+#' summary(fit)
+#' head(predict(fit, type = "zero"))
 #' @export
 zinbreg <- function(formula, data, offset, control = zinbreg_control(),
                     weights, subset, na.action) {

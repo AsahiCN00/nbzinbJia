@@ -3,28 +3,14 @@
 # log-likelihood all within 1e-3 (maximum absolute difference).
 max_abs_diff <- function(a, b) max(abs(unname(a) - unname(b)))
 
-# All coefficients of a zinbreg fit, named like coef(zeroinfl(...)).
-zcoef <- function(fit) {
-  cf <- fit$coefficients
-  stats::setNames(c(cf$count, cf$zero),
-                  c(paste0("count_", names(cf$count)),
-                    paste0("zero_", names(cf$zero))))
-}
-
-# SEs of the coefficients (fit$vcov also has a row for log(theta)).
-zse <- function(fit) {
-  k <- length(fit$coefficients$count) + length(fit$coefficients$zero)
-  sqrt(diag(fit$vcov))[seq_len(k)]
-}
-
 expect_matches_zeroinfl <- function(fit, ref) {
   expect_true(fit$converged)
-  expect_identical(names(zcoef(fit)), names(coef(ref)))
-  expect_lte(max_abs_diff(zcoef(fit), coef(ref)), 1e-3)
-  expect_lte(max_abs_diff(zse(fit), sqrt(diag(vcov(ref)))), 1e-3)
+  expect_identical(names(coef(fit)), names(coef(ref)))
+  expect_lte(max_abs_diff(coef(fit), coef(ref)), 1e-3)
+  expect_lte(max_abs_diff(sqrt(diag(vcov(fit))), sqrt(diag(vcov(ref)))), 1e-3)
   expect_lte(max_abs_diff(log(fit$theta), log(ref$theta)), 1e-3)
   expect_lte(max_abs_diff(fit$SE.logtheta, ref$SE.logtheta), 1e-3)
-  expect_lte(max_abs_diff(fit$loglik, logLik(ref)), 1e-3)
+  expect_lte(max_abs_diff(logLik(fit), logLik(ref)), 1e-3)
 }
 
 ref_zinb <- function(f, data, ...) {
@@ -93,12 +79,12 @@ test_that("a formula without '|' uses the same covariates in both parts", {
   data("bioChemists", package = "pscl")
   f1 <- zinbreg(art ~ fem + ment, data = bioChemists)
   f2 <- zinbreg(art ~ fem + ment | fem + ment, data = bioChemists)
-  expect_equal(zcoef(f1), zcoef(f2))
-  expect_equal(names(f1$coefficients$zero), c("(Intercept)", "femWomen",
-                                              "ment"))
+  expect_equal(coef(f1), coef(f2))
+  expect_equal(names(coef(f1, model = "zero")), c("(Intercept)", "femWomen",
+                                                  "ment"))
 })
 
-test_that("offsets match zeroinfl", {
+test_that("offsets match zeroinfl and are re-applied by predict()", {
   skip_if_not_installed("pscl")
   data("bioChemists", package = "pscl")
   d <- bioChemists
@@ -110,6 +96,10 @@ test_that("offsets match zeroinfl", {
   fit2 <- zinbreg(art ~ fem + ment + offset(log(expo)) | ment, data = d)
   expect_matches_zeroinfl(fit1, ref)
   expect_matches_zeroinfl(fit2, ref)
+  expect_equal(predict(fit1, newdata = d), fitted(fit1), tolerance = 1e-10,
+               ignore_attr = TRUE)
+  expect_equal(predict(fit2, newdata = d), fitted(fit2), tolerance = 1e-10,
+               ignore_attr = TRUE)
 })
 
 test_that("single-covariate and intercept-only zero models work", {
@@ -134,9 +124,42 @@ test_that("no zero inflation (pi -> 0 boundary) gives a warning", {
   f <- art ~ ment | 1
   expect_warning(fit <- zinbreg(f, data = bioChemists), "essentially zero")
   ref <- ref_zinb(f, bioChemists)
-  expect_lte(max_abs_diff(fit$coefficients$count,
+  expect_lte(max_abs_diff(coef(fit, model = "count"),
                           coef(ref, model = "count")), 1e-3)
-  expect_lte(max_abs_diff(fit$loglik, logLik(ref)), 1e-3)
+  expect_lte(max_abs_diff(logLik(fit), logLik(ref)), 1e-3)
+})
+
+test_that("S3 methods agree with zeroinfl", {
+  skip_if_not_installed("pscl")
+  data("bioChemists", package = "pscl")
+  d <- bioChemists
+  f <- art ~ fem + kid5 + ment | ment
+  fit <- zinbreg(f, data = d)
+  ref <- ref_zinb(f, d)
+  expect_equal(attr(logLik(fit), "df"), attr(logLik(ref), "df"))
+  expect_equal(nobs(fit), nrow(d))
+  expect_lte(abs(AIC(fit) - AIC(ref)), 1e-3)
+  expect_lte(abs(BIC(fit) - BIC(ref)), 1e-3)
+  for (t in c("response", "count", "zero")) {
+    expect_lte(max_abs_diff(predict(fit, type = t), predict(ref, type = t)),
+               1e-3)
+    expect_lte(max_abs_diff(predict(fit, newdata = d, type = t),
+                            predict(ref, newdata = d, type = t)), 1e-3)
+  }
+  expect_lte(max_abs_diff(predict(fit, type = "prob"),
+                          predict(ref, type = "prob")), 1e-3)
+  expect_lte(max_abs_diff(residuals(fit, type = "pearson"),
+                          residuals(ref, type = "pearson")), 1e-3)
+  expect_equal(residuals(fit), d$art - fitted(fit))
+  expect_equal(fitted(fit), predict(fit, type = "response"))
+  expect_equal(names(coef(fit, model = "count")),
+               c("(Intercept)", "femWomen", "kid5", "ment"))
+  expect_equal(dim(vcov(fit, model = "zero")), c(2L, 2L))
+  s <- summary(fit)
+  expect_s3_class(s, "summary.zinbreg")
+  expect_equal(rownames(s$coefficients$count)[5], "Log(theta)")
+  expect_output(print(fit), "Zero-inflation")
+  expect_output(print(s), "Pearson residuals")
 })
 
 test_that("bad input gives informative errors", {
