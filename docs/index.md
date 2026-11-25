@@ -26,7 +26,8 @@ information matrix of (β, γ, log θ).
 This package was written for the STA 651 final project (Miami
 University, Fall 2026).
 
-**Function reference website** <https://asahicn00.github.io/nbzinbJia/>
+**Website (function reference and project report)**
+<https://asahicn00.github.io/nbzinbJia/>
 
 The first implementation is preserved on the `first-pass` branch. The
 commits on `main` reconstruct the development steps from saved snapshots
@@ -52,7 +53,7 @@ also use `MASS`, `pscl`, `AER` and `numDeriv`:
 ## Usage
 
 \
-[`library`](https://rdrr.io/r/base/library.html)`(``nbzinbJia``)`\
+[`library`](https://rdrr.io/r/base/library.html)`(`[`nbzinbJia`](https://asahicn00.github.io/nbzinbJia/)`)`\
 [`data`](https://rdrr.io/r/utils/data.html)`(``"bioChemists"``, package ``=`` ``"pscl"``)`\
 \
 `# Negative binomial regression`\

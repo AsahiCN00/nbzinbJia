@@ -25,7 +25,7 @@ information matrix of (β, γ, log θ).
 This package was written for the STA 651 final project (Miami University,
 Fall 2026).
 
-**Function reference website**
+**Website (function reference and project report)**
 <https://asahicn00.github.io/nbzinbJia/>
 
 The first implementation is preserved on the `first-pass` branch. The commits on `main` reconstruct the development steps from saved snapshots for the walkthrough.
